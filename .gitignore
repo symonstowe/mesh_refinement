@@ -1,4 +1,6 @@
 #main files for the project 
+*.msh
+*.geo
 *.opt
 *.mat
 *.svg
