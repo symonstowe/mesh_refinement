@@ -1,3 +1,9 @@
+#main files for the project 
+*.opt
+*.mat
+*.svg
+*.png
+*.pdf
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
