@@ -1,69 +1,171 @@
 function node_balance_comp()
+	% Input the starting divisions per electrode edge for m-type meshes
+	starting_div = 3;
+	[mesh_tab,ref_meshes,m_meshes] = gen_meshes(starting_div);
+	[sens_tab] = calc_all_sens(ref_meshes, m_meshes, starting_div);
+	mk_sens_plots(mesh_tab,sens_tab);
+	%mk_latex_tables(mesh_tab,sens_tab);
+keyboard
+
+end
+
+function [mesh_tab,ref_meshes,m_meshes] = gen_meshes(constant_div)
 	% Generate and save all of the meshes for the analysis 
-	% Starting divisions per electrode
-	constant_div = 5;
+	% input is the starting divisions per electrode
 	mdl_fname = ['FMDL',num2str(constant_div),'.mat'];
 	ref_mdl_fname = 'FMDL_ref.mat'; % Use a separte file for the ref meshes 
 	w_r = who('-file',ref_mdl_fname);
 	% Generate the reference meshes
-	ref_divs = 20; % These are HUGE meshes
+	ref_divs = 15; % These are HUGE meshes %TODO can we use a size 25 divisions?
 	ref_size = 50/ref_divs/1000;
 	% Netgen 
 	mdl_name = 'mdl_000';
 	if ismember(mdl_name,w_r)
 		load(ref_mdl_fname,mdl_name);
 		fmdl = eval(mdl_name);
-		fmdl.name = mdl_name;	
+		fmdl.mesh_params.spec_min = ref_size*1000;
+		fmdl.mesh_params.spec_max = ref_size*1000;
+		eval([mdl_name ' = fmdl;']);
 	else
 		fmdl = netgen_gen(ref_size,ref_size);
 		fmdl.name = mdl_name;	
+		fmdl = calc_mesh_info(fmdl);
 		eval([mdl_name ' = fmdl;']);
-		save(ref_mdl_fname,'-append',mdl_name);
+		save(ref_mdl_fname,'-append',mdl_name,'-v7.3');
 	end
 	% GMSH
 	mdl_name = 'mdl_100';
 	if ismember(mdl_name,w_r)
 		load(ref_mdl_fname,mdl_name);
 		fmdl = eval(mdl_name);
-		fmdl.name = mdl_name;	
-	else
-		fmdl = gmsh_gen(ref_size,ref_size,0,0,1);
-		fmdl.name = mdl_name;	
+		fmdl.mesh_params.spec_min = ref_size*1000;
+		fmdl.mesh_params.spec_max = ref_size*1000;
 		eval([mdl_name ' = fmdl;']);
-		save(ref_mdl_fname,'-append',mdl_name);
+	else
+		fmdl = gmsh_gen(ref_size,ref_size,0,0,1,0);
+		fmdl.name = mdl_name;	
+		fmdl = calc_mesh_info(fmdl);
+		eval([mdl_name ' = fmdl;']);
+		save(ref_mdl_fname,'-append',mdl_name,'-v7.3');
 	end
+	% Generate the reference parmeter table
+	mesh_tab0  = struct2table(mdl_000.mesh_params);
+	mesh_tab0  = [table({mdl_000.name},'VariableNames',{'Name'}), mesh_tab0] ;
+	mesh_tab1  = struct2table(mdl_100.mesh_params);
+	mesh_tab1  = [table({mdl_100.name},'VariableNames',{'Name'}), mesh_tab1] ;
+	mesh_tab   = [mesh_tab0; mesh_tab1];
+	% Generate the meshes for analysis
 	w = who('-file',mdl_fname);
-	mesh_mult = linspace(1,2,21); % Mesh multipliers for the electrode size 
+	mesh_mult = linspace(1,0.2,17); % Mesh multipliers for the electrode size 
 	% make the constant mesh for each upon which everything else will be based
-	keyboard
-
-
-
-
-
-
+	base_size = 50/constant_div/1000;
+	% Netgen
+	mdl_name = 'mdl_001';
+	if ismember(mdl_name,w)
+		load(mdl_fname,mdl_name);
+		fmdl = eval(mdl_name);
+		fmdl.mesh_params.spec_min = base_size*1000;
+		fmdl.mesh_params.spec_max = base_size*1000;
+		eval([mdl_name ' = fmdl;']);
+	else
+		fmdl = netgen_gen(base_size,base_size);
+		fmdl.name = mdl_name;	
+		fmdl = calc_mesh_info(fmdl);
+		eval([mdl_name ' = fmdl;']);
+		save(mdl_fname,'-append',mdl_name);
+	end
+	n_ref_nodes = fmdl.mesh_params.num_nodes;
+	mesh_tab_temp = struct2table(eval([mdl_name '.mesh_params']));
+	mesh_tab_temp = [table({eval([mdl_name '.name'])},'VariableNames',{'Name'}), mesh_tab_temp];
+	mesh_tab = [mesh_tab; mesh_tab_temp];
+	% GMSH
+	mdl_name = 'mdl_101';
+	if ismember(mdl_name,w)
+		load(mdl_fname,mdl_name);
+		fmdl = eval(mdl_name);
+		fmdl.mesh_params.spec_min = base_size*1000;
+		fmdl.mesh_params.spec_max = base_size*1000;
+		eval([mdl_name ' = fmdl;']);
+	else
+		fmdl = gmsh_gen(base_size,base_size,0,0,1,0);
+		fmdl.name = mdl_name;	
+		fmdl = calc_mesh_info(fmdl);
+		eval([mdl_name ' = fmdl;']);
+		save(mdl_fname,'-append',mdl_name);
+	end
+	g_ref_nodes = fmdl.mesh_params.num_nodes;
+	mesh_tab_temp = struct2table(eval([mdl_name '.mesh_params']));
+	mesh_tab_temp = [table({eval([mdl_name '.name'])},'VariableNames',{'Name'}), mesh_tab_temp];
+	mesh_tab = [mesh_tab; mesh_tab_temp];
+	% Run through the non-contant meshes using the reference mesh node numbers to truncate the meshing...
 	for i = 2:length(mesh_mult) % Lets try 20 different mesh sizes
 		% Netgen first 
 		mdl_name = ['mdl_0' num2str(i,'%02.f')];
 		if ismember(mdl_name,w)
-			load(ref_mdl_fname,mdl_name);
+		%if ismember('test',w)
+			load(mdl_fname,mdl_name);
 			fmdl = eval(mdl_name);
 			fmdl.name = mdl_name;
 		else
-			fmdl = netgen_gen(mesh_mult(i));
+			num_nodes = 0;
+			node_adjust = 0;
+			while(abs(num_nodes-n_ref_nodes)>n_ref_nodes*0.15)
+				fmdl = netgen_gen(mesh_mult(i)*base_size,(1-mesh_mult(i)+1)*base_size+(node_adjust*base_size));
+				num_nodes = size(fmdl.nodes,1);
+				max_size = (1-mesh_mult(i)+1)*base_size+(node_adjust*base_size);
+				min_size = mesh_mult(i)*base_size;
+				if num_nodes>n_ref_nodes 
+					node_adjust = node_adjust+0.05;
+				else
+					node_adjust = node_adjust-0.1;
+				end
+			end
+			fmdl.mesh_params.spec_min = min_size*1000;
+			fmdl.mesh_params.spec_max = max_size*1000;
 			fmdl.name = mdl_name;	
+			fmdl = calc_mesh_info(fmdl);
 			eval([mdl_name ' = fmdl;']);
-			save(mdl_fname,'-append',ref_mdl_name);
+			save(mdl_fname,'-append',mdl_name);
 		end
-		fmdl = get_mesh(mdl_name);
-
+		% Add to the table
+		mesh_tab_temp = struct2table(eval([mdl_name '.mesh_params']));
+		mesh_tab_temp = [table({eval([mdl_name '.name'])},'VariableNames',{'Name'}), mesh_tab_temp];
+		mesh_tab = [mesh_tab; mesh_tab_temp];
 		% GMSH
 		mdl_name = ['mdl_1' num2str(i,'%02.f')];
-		fmdl = get_mesh(mdl_name);
-
-
+		if ismember(mdl_name,w)
+		%if ismember('test',w)
+			load(mdl_fname,mdl_name);
+			fmdl = eval(mdl_name);
+			fmdl.name = mdl_name;
+		else
+			num_nodes = 0;
+			node_adjust = 0;
+			while(abs(num_nodes-g_ref_nodes)>g_ref_nodes*0.15)
+				fmdl = gmsh_gen(mesh_mult(i)*base_size,(1-mesh_mult(i)+1)*base_size+(node_adjust*base_size),0,0.25,1);
+				num_nodes = size(fmdl.nodes,1);
+				max_size = (1-mesh_mult(i)+1)*base_size+(node_adjust*base_size);
+				min_size = mesh_mult(i)*base_size;
+				if num_nodes>g_ref_nodes 
+					node_adjust = node_adjust+0.05;
+				else
+					node_adjust = node_adjust-0.1;
+				end
+			end
+			fmdl.mesh_params.spec_min = min_size*1000;
+			fmdl.mesh_params.spec_max = max_size*1000;
+			fmdl.name = mdl_name;	
+			fmdl = calc_mesh_info(fmdl);
+			eval([mdl_name ' = fmdl;']);
+			save(mdl_fname,'-append',mdl_name);
+		end
+		% Add to the table
+		mesh_tab_temp = struct2table(eval([mdl_name '.mesh_params']));
+		mesh_tab_temp = [table({eval([mdl_name '.name'])},'VariableNames',{'Name'}), mesh_tab_temp];
+		mesh_tab = [mesh_tab; mesh_tab_temp];
 	end
-	
+	ref_meshes = load(ref_mdl_fname);
+	m_meshes = load(mdl_fname);
 end
 
 function fmdl = netgen_gen(e_maxh, g_maxh)
@@ -78,7 +180,7 @@ function fmdl = netgen_gen(e_maxh, g_maxh)
 	fmdl.stimulation = fmdl.stimulation(2);
 end
 
-function fmdl = gmsh_gen(e_maxh, g_maxh, r1, r2, o_flag)
+function fmdl = gmsh_gen(e_maxh, g_maxh, r1, r2, o_flag, edge_flag)
 	% Write the gmsh file and run it to create the mesh
 	% o_flag specifies optimization technique 
 	fid = fopen('temp_geo.geo','w');    
@@ -96,7 +198,11 @@ function fmdl = gmsh_gen(e_maxh, g_maxh, r1, r2, o_flag)
 	fprintf(fid,'Mesh.CharacteristicLengthExtendFromBoundary = 0; \n');
 	fprintf(fid,'Field[1] = Attractor; \n');
 	fprintf(fid,'Field[1].NNodesByEdge = 1000; \n');
-	fprintf(fid,'Field[1].FacesList = {4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28}; \n');
+	if edge_flag == 1
+		fprintf(fid,'Field[1].EdgesList = {4,5,6,7,8,9,11,12,13,15,16,17,18,19,21,22,23,25,26,27,28,29,30,31,32,33,36,37,38,41,42,43,44,45,46,47,48,49,50,52,53,55,56}; \n');
+	else
+		fprintf(fid,'Field[1].FacesList = {4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28}; \n');
+	end
 	fprintf(fid,'Field[2] = Threshold; \n');
 	fprintf(fid,'Field[2].IField = 1; \n');
 	fprintf(fid,'Field[2].LcMin = %f; \n', e_maxh);
@@ -128,7 +234,7 @@ function fmdl = gmsh_gen(e_maxh, g_maxh, r1, r2, o_flag)
 	fmdl = order_elecs(fmdl);
 	fmdl.stimulation = mk_stim_patterns(4,1,'{ad}','{ad}',[],1);
 	fmdl.stimulation = fmdl.stimulation(2);	
-	end
+end
 
 function fmdl = order_elecs(fmdl)
 	new_elec_locs = [0,0.25,0.125;
@@ -137,4 +243,213 @@ function fmdl = order_elecs(fmdl)
 			-.25,0,0.125];
 	fmdl = renumber_electrodes( fmdl , new_elec_locs, 0);
 end	
+
+function fmdl = calc_mesh_info(fmdl)
+	% Use fix model to get advanced metrics
+	temp_fmdl = fix_model(fmdl);
+	% State Units (could be helpful later)
+	fmdl.mesh_params.units = 'mm or mm^3';
+	% Calculate:
+	% 1) Number of elements
+	fmdl.mesh_params.num_elems = size(fmdl.elems,1);
+	% 2) Number of nodes
+	fmdl.mesh_params.num_nodes = size(fmdl.nodes,1);
+	% 3) Elements per electrode (average?)
+	elec_faces = ismember(fmdl.elems, fmdl.electrode(1).nodes);
+    	elec_face_num = length(find(sum(elec_faces,2) == 3));
+	if elec_face_num == 0
+		elec_face_num = length(fmdl.electrode(1).faces);
+	end  
+	fmdl.mesh_params.elems_per_elec = elec_face_num;
+	% 4) Max edge length
+	fmdl.mesh_params.max_el = max(temp_fmdl.edge_length)*1000;
+	% 5) Min Edge length
+	fmdl.mesh_params.min_el = min(temp_fmdl.edge_length)*1000;
+	% 6) Max element volume
+	fmdl.mesh_params.max_ev = max(temp_fmdl.elem_volume)*1e+9;
+	% 7) Min element volume
+	fmdl.mesh_params.min_ev = min(temp_fmdl.elem_volume)*1e+9;
+	% 8) Center of mass (for the mesh analysis) (As a percent!)
+	[balance_pt,~,~] = node_balance(fmdl);
+	fmdl.mesh_params.balance_pt = balance_pt;
+end
+
+function [balance_pt,count_nodes,I] = node_balance(fmdl)
+	% input a FMDL 
+	% ouput the node balance in percent of model and 
+	% number of nodes in the selected area between the electroeso
+	fmdl = order_elecs(fmdl);
+	elec_nodes = fmdl.nodes(fmdl.electrode(1).nodes,:);
+	edge_nodes = [fmdl.electrode(1).nodes,fmdl.electrode(3).nodes];
+	max_z = max(elec_nodes(:,3));
+	min_z = min(elec_nodes(:,3));
+	max_wdth = max(elec_nodes(:,1));
+	min_wdth = min(elec_nodes(:,1));
+	I = find((fmdl.nodes(:,1) <= max_wdth) & (fmdl.nodes(:,1) >= min_wdth) & ...
+		 (fmdl.nodes(:,3) <= max_z)    & (fmdl.nodes(:,3) >= min_z) & ...
+		 (fmdl.nodes(:,2) > 0) );
 	
+	I = setdiff(I,edge_nodes); % Remove the nodes that are in the electrode suraface positions
+	count_nodes = size(I);
+	balance_pt = mean(fmdl.nodes(I,2))/0.25*100;
+end
+
+function [sens_tab] = calc_all_sens(ref_meshes, m_meshes, starting_div)
+	% Ouput the sensitivity error for all regions including the next-to-electrode
+	% Table format
+	sens_tab=cell2table(cell(0,7),'VariableNames',{'Name','se','si','me','mi','c','t'});
+	fn = fieldnames(ref_meshes);
+	sens = [];
+	sns_fname = ['SENS',num2str(starting_div),'.mat'];
+	ref_sns_fname = 'SENS_ref.mat';
+	% Reference meshes first
+	for i=1:numel(fn)
+		w = who('-file',ref_sns_fname);
+		if ismember([fn{i}, '_sens'],w)
+			load(ref_sns_fname,[fn{i}, '_sens']);	
+			%sens_img = eval([fn{i}, '_sens']);
+		else
+			keyboard % We should not be hitting this!
+			fmdl =  ref_meshes.(fn{i});
+			eval([fn{i}, '_sens = calc_sens(fmdl);']);
+			save('SENS_ref.mat','-append',[fn{i}, '_sens']);
+		end
+	end
+	fn = fieldnames(m_meshes);
+	for i=1:numel(fn)
+		var_name = [fn{i}, '_sens'];
+		d = regexp(var_name,'\d*','Match');
+		if str2double(d{1}) > 100
+			ref_sens = mdl_100_sens;
+		else
+			ref_sens = mdl_000_sens;
+		end
+		w = who('-file',sns_fname);
+		if ismember(var_name,w)
+			load(sns_fname,var_name);	
+		else
+			keyboard % We should not be hitting this!
+			fmdl =  m_meshes.(fn{i});
+			%sens_img = calc_sens(fmdl);
+			eval([fn{i}, '_sens = calc_sens(fmdl);']);
+			save(['SENS',num2str(starting_div),'.mat'],'-append',var_name);
+		end
+		sens_img = eval(var_name);
+		[sens.se,sens.si,sens.me,sens.mi,sens.c,sens.t] = ... 
+						compare_sens(sens_img,ref_sens);
+		sens_tab_temp = struct2table(sens);
+		sens.Name = fn{i};
+		sens_tab = [sens_tab; struct2table(sens)];
+	end
+end
+	
+function roi =  get_roi(str)
+		roi = false(512,512);
+		switch(str)
+		case 'se'
+		    roi(462:512,193:320)=true;
+		case 'si'
+		    roi(410:461,193:320)=true;
+		case 'me'
+		    roi(192:320,1:51)=true;
+		case 'mi'
+		    roi(192:320,52:103)=true;
+		case 'c'
+		    roi(192:320,192:320)=true;
+		end
+end
+	    
+function [imgv vh] = solve_for_volts(fmdl)
+	img = mk_image(fmdl,1);
+	img.fwd_solve.get_all_meas = 1;
+	vh = fwd_solve(img);
+	imgv= rmfield(img,'elem_data');
+	imgv.node_data = vh.volt;
+	imgv.calc_colours.npoints = 512;
+	vh = vh.meas;
+end
+	    
+function rst = volt2raster(imgv)
+	rst = calc_slices(imgv,[inf inf 0]);
+end
+	    
+function sens = calc_sens(fmdl)
+	%Given the FMDL return the sens values...
+	img = mk_image(fmdl,1);
+	J = calc_jacobian(img);
+	J = jacobian_adjoint(img);
+	S = J'./get_elem_volume(fmdl);
+	tmp = img;
+	tmp.elem_data = S;
+	tmp.calc_colours.npoints = 512;
+	Se = calc_slices(tmp,[inf inf 0.25/2]);
+	ca = max(abs(Se(:)));
+	
+	N = 15;
+	L = zeros(N,3);
+	L(:,1:2) = inf;
+	L(:,3) = linspace(0.05,0.2,N); % What should the seperation from the edges be?
+	t = calc_slices(tmp,L);
+	t = squeeze(t);
+	Sa = mean(t,3);
+	sens = Sa;
+end
+	
+function [se,si,me,mi,c,t] = compare_sens(Sa,ref_Sa)
+	regions = {'se', 'si', 'me', 'mi', 'c'};
+	for j=0:length(regions)
+		if j == 0
+		roi = true(512,512);
+		else
+		roi = get_roi(regions{j});
+		end
+		ref_sa_roi = ref_Sa .* roi;
+		sa_roi     = Sa .* roi;
+		err = ref_sa_roi - sa_roi;
+		err = sum(abs(err(~isnan(err))))/sum(sum(~isnan(err)));
+		%imagesc(err)
+		if j == 0
+		%eval('sens_total(ycount,xcount) = err;')
+		t = err;
+		else
+		eval([regions{j},' = err;'])
+		end
+	end
+end
+
+function mk_latex_tables(mesh_tab,sens_tab)
+	% Generate and format the tables
+end
+
+function mk_sens_plots(mesh_tab,sens_tab)
+	% For every row in the sens tab find the correspoonding row in the mesh tab
+	% Grab the CofM, and plot the sens error!	
+	sens_names = cellstr(sens_tab.Name);
+	for i=1:size(mesh_tab,1)
+		var_name = mesh_tab.Name{i};
+		d = regexp(var_name,'\d*','Match');
+		d = str2double(d);
+		if (d > 100) & (d < 200)
+			loc = find(strcmp(var_name,sens_names));
+			gmsh_sens(i) = sens_tab.t(loc);
+			gmsh_CofM(i) = mesh_tab.balance_pt(i);
+		elseif (d>0) & (d<100)
+			loc = find(strcmp(var_name,sens_names));
+			net_sens(i) = sens_tab.t(loc);
+			net_CofM(i) = mesh_tab.balance_pt(i);
+		elseif (d>200) % Do the advanced advanced gmsh
+		end
+	end
+	net_sens = net_sens(net_sens > 0);
+	net_CofM = net_CofM(net_CofM > 0);
+	gmsh_sens = gmsh_sens(gmsh_sens > 0);
+	gmsh_CofM = gmsh_CofM(gmsh_CofM > 0);
+	figure(1)
+	p1 = plot(gmsh_CofM,gmsh_sens,'b');
+	hold on 
+	% netgen is a mess
+	[sorted_CofM, I] = sort(net_CofM);
+	sorted_sens = net_sens(I);
+	p2 = plot(sorted_CofM,sorted_sens,'r');
+	hold off
+end
