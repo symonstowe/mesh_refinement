@@ -1,4 +1,5 @@
 % !TEX program = lualatex
+% !BIB program = biber
 \documentclass[12pt]{iopart}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -84,7 +85,7 @@ a sensitivity matrix, $\bf J$, of
 the relationship between internal changes and measurements
 is calculated, and then a pseudo-inverse of $\bf J$ is used
 to update the image estimate. (Several algorithms use
-one step of the iterative solution~\parencite{Lionheart2004}.)
+one step of the iterative solution~\parencite{lionheart_eit_2004}.)
 EIT image reconstruction is ill-posed, since the physics of
 current propagation imply that sensitivity is largest near
 the electrodes and smallest in the body center.
@@ -119,34 +120,35 @@ commonly used with EIT compare when used to refine 3D meshes?
 Previously with EIT, mesh refinement has primarily been either 
 constant, or based on 
 the complexity of geometric features
-and gradients between different volumes and surfaces~\parencite{Grychtol2009}.  
-Netgen~\parencite{Schoberl1997} and GMSH~\parencite{Geuzaine2009} have been used alongside 
-EIDORS~\parencite{Adler2009} to generate meshes in both 2D and 3D. 
+and gradients between different volumes and surfaces~\parencite{grychtol_fem_2013}.  
+Netgen~\parencite{schoberl_netgen_1997} and Gmsh~\parencite{geuzaine_gmsh_2009} have been used alongside 
+EIDORS~\parencite{adler_uses_2006} to generate meshes in both 2D and 3D. 
 Currently refinement around electrodes is most frequently performed by 
 setting a mesh density for the electrodes and allowing the mesh density to 
 decay towards the maximum mesh size. This does not allow the user to specify 
 the rate of decay or precisely control the mesh size in regions nearest to 
 the  electrodes where sensitivity to change is highest.
 
-A FEM what accurately represents the anatomy of the imaged region 
-can greatly increase the quality of the resonctructed image~\parencite{Zhang2017},
+A FEM that accurately represents the anatomy of the imaged region 
+can greatly increase the quality of the reconstructed image~\parencite{grychtol_impact_2012},
 but increasing the complexity of mesh surfaces presents additional challenges for
-mesh refinement. Electrodes can be placed on the surface of complex boundaries in 
-EIDORS~\parencite{Grychtol2013}, but the current functionality does not allow the
+mesh refinement. Using EIDORS in ,  electrodes can be placed on the surface of complex boundaries in 
+EIDORS~\parencite{grychtol_fem_2013}, but the current functionality does not allow the
 refinement around the electrodes to be controlled, or for users to specify internal 
 refinement and structures.
 Most commercially available FEM packages
 do not conveniently provide such capability either.
 
-Due to the increasing number of options for implementing mesh refinement around the
-electrodes it is also important to consider which gives the highest quality mesh. 
-The quality of a mesh dictates the accuracy of the subsequent analysis 
-and solution, and can be characterized by the properties of the tetrahedra
-comprising the model~\parencite{Parthasarathy1993}.
+%Due to the increasing number of options for implementing mesh refinement around the
+%electrodes it is also important to consider which gives the highest quality mesh. 
+%The quality of a mesh dictates the accuracy of the subsequent analysis 
+%and solution, and can be characterized by the properties of the tetrahedra
+%comprising the model~\parencite{Parthasarathy1993}.
 
-In this paper we present a comparison between GMSH and 
-Netgen based mesh refinement around electrodes, and evaluate the 
-effect of mesh refinement techniques on accuracy and mesh quality. 
+In this paper we present a comparison between Gmsh and 
+Netgen based mesh refinement around electrodes and structures, and evaluate the 
+effect of mesh refinement techniques on error in  the sensitivity matrix, 
+$\bf J$. 
 We also present a tool for mesh refinement around both external and internal
 electrodes and geometric structures in EIDORS. 
 
@@ -154,77 +156,83 @@ electrodes and geometric structures in EIDORS.
 \subsection{Overview}
 A cylinder ($\diameter=0.5$~m, height $h=0.25$~m) with four square electrodes 
 (5~cm edge length) placed equidistantly around the perimeter at mid-height was
-meshed with Netgen~\parencite{Schoberl1997} and GMSH~\parencite{Geuzaine2009}
+meshed with Netgen (version 5.3.1)~\parencite{schoberl_netgen_1997} and Gmsh 
+(version 4.7.0)~\parencite{geuzaine_gmsh_2009}
 meshing softwares.
 Current was injected between adjacent electrodes and the voltage was measured between the remaining
 two electrodes.
 For 3D meshes an initial analysis was done building on work from 
-Grychtol and Adler~\parencite{Grychtol2013} where mesh density was
+Grychtol and Adler~\parencite{grychtol_fem_2013} where mesh density was
 set by specifying the maximum edge lengths permitted on electrode surfaces
 and in the volume of the FEM.
 Results were compared against those generated using ultra-fine meshes. 
-Calculations were performed with EIDORS~\parencite{Adler2006} in Matlab 2019b
+Calculations were performed with EIDORS (version 3.10)~\parencite{adler_uses_2006} 
+in Matlab 2019b
 (The Mathworks, Natick, MA, USA).
 
 
 \subsection{Mesh Generation}
-Meshes of different size were generated with Netgen and GMSH by manipulating the desired
+Meshes of different size were generated with Netgen and Gmsh by manipulating the desired
 maximum edge length (maxh parameter) for the entire domain and the electrodes.
-The values were
+Two different mesh analyses were performed. For the first
+mesh maximum element lengths were
 chosen such as to divide the electrode side of 5~cm into an integer number of
 segments of equal size. 
 The maximum mesh element length ranged from 1 to 7 subdivisions of the electrode 
 edge, while the maximum mesh element length in the ultra-fine reference mesh  
-was 12 subdivisions per 
+was 15 subdivisions per 
 electrode edge. 
-
-Three types of mesh were generated. In models C1--C7, the
-desired mesh size in the entire medium and the electrodes were equal, the number
-indicating the number of subdivisions per electrode edge. 
-Figure~\ref{fig:electrode_mesh_size} shows the generated mesh structure around the electrode 
-for moth Netgen and GMSH. 
-
-\begin{figure}
-  \includegraphics[width=\columnwidth]{electrode_mesh_size.pdf}
-  \caption{\label{fig:electrode_mesh_size} A view of the electrode meshing for all constant-density meshes 
-  in Netgen (top row) and Gmsh (bottom row). The figure shows all electrode faces and immediate surrounding
-  surroundings from coarsest (C1) to finest (C7). C represents the constant mesh refinement and the number
-  represents the specified mesh subdivisions per electrode edge. The reference mesh is equivalent to C12.}
-\end{figure}
-
-In models R1--R7, local refinement around the electrodes was achieved by
-decreasing the desired mesh size of the electrode while keeping that for the
-entire domain constant and equal to that in the coarsest mesh C1. 
-In Netgen the mesh decay was not controllable, but in GMSH the size was set 
-to increase evenly from the edge of the electrode to the centre of the model.
+Two types of models were generated this way. Constant models C1--C7, where the mesh size 
+was constant, and refined models R1--R7 where the electrode mesh size was specified and 
+dissipated towards an internal mesh element size of 5cm. The numeric value in the mesh 
+ID indicated the number of subdivisions per electrode edge. 
+In Netgen the mesh decay was not controllable, but in Gmsh the size was set 
+to increase evenly from the surface of the electrode to the centre of the model.
 Figure~\ref{fig:sample_meshes} shows example meshes of coarse, fine, and refined
-meshes.
+meshes. Figure~\ref{fig:electrode_mesh_size} shows the generated mesh structure for 
+constant refinement meshes around the electrode 
+for both Netgen and Gmsh. 
 
 \begin{figure}
    \includegraphics[width=\columnwidth]{sample_meshes.pdf}
    \caption{\label{fig:sample_meshes} Sample meshes generated with Netgen (top row)
    and Gmsh (bottom row). From left to right there is: (C1) the coarsest constant
    mesh; (C5) a refined constant mesh; and (R5) a refined mesh with the same
-   electrode mesh density as C5 but higher internal mesh density.}
+   electrode mesh density as C5 but lower internal mesh density.}
 \end{figure}
 
-In models M1--M10 the distribution of nodes within the model was changed without altering 
-the total number of nodes. Starting with the constant mesh C5, the maximum mesh element 
+\begin{figure}
+  \includegraphics[width=\columnwidth]{electrode_mesh_size.pdf}
+  \caption{\label{fig:electrode_mesh_size} A view of the electrode meshing for all constant-density meshes 
+  in Netgen (top row) and Gmsh (bottom row). The figure shows all electrode faces and immediate surrounding
+  surroundings from coarsest (C1) to finest (C7). C represents the constant mesh refinement and the number
+  represents the specified mesh subdivisions per electrode edge. The reference mesh is equivalent to C15.}
+\end{figure}
+
+For the second analysis the distribution of nodes within the 
+model was changed without altering 
+the total number of nodes. 
+Starting with the constant mesh C3, the maximum mesh element 
 length on the electrode was decreased by 10\% and the maximum mesh size in the center was
-increased so that the total number of elements in the mesh was  within 5\% of C5. This 
-type of mesh generation was only done using the GMSH software as the controls were not
-available in Netgen. To compare these meshes a rectangular section of the model was selected
-encompassing all points between the center of the model and a selected electrode. The average 
+increased so that the total number of elements in the mesh was  within 10\% of the 
+original mesh. 
+In Netgen the mesh dissipation rate was not further controlled, and in Gmsh the mesh density 
+decreased evenly from the electrode surface to the center of the model. 
+To compare these meshes a section of the model was selected
+encompassing all points between the center of the model and a selected electrode face.
+The average 
 distance, or balance point, along the x axis of the selected points was expressed 
 as a percentage of the tank radius.
 This process is illustrated in Figure~\ref{fig:balanceMethods}.
  
 \begin{figure}
   \includegraphics[width=\columnwidth]{balance_methods.pdf}
-  \caption{\label{fig:balanceMethods} Sample meshes generated with Netgen (top row)
-  and Gmsh (bottom row). From left to right there is: (C1) the coarsest constant
-  mesh; (C5) a refined constant mesh; and (R5) a refined mesh with the same
-  electrode mesh density as C5 but higher internal mesh density.}
+  \caption{\label{fig:balanceMethods} A sketch of the process to determine the 
+  balance point of generated meshes. A) the starting mesh; B) nodes between the
+  electrode surface and the center of the model are identified; C) the 
+  balance point of the nodes along the x-axis is calculated and indicated 
+  by the red plane; D) a histogram showing an example distribution and balance point (red)
+  for the selected model.}
 \end{figure}
 
 
@@ -254,10 +262,10 @@ the $j$-th stimulation. Here, we drive current of 1~A between two adjacent
 electrodes in a single stimulation, so $C = [0\,|\,0\,|\,1\,|\,-1]^T$. 
 We pick a node in the center of the FEM as ground, since it is necessary to
 assume the potential on
-one node for \YB\ to be invertible~\cite{Adler1996a}.
+one node for \YB\ to be invertible~\parencite{Adler1996a}.
 We use the complete electrode model and assume contact impedance of
 0.01~$\Omega$ in the calculation of the admittance
-matrix~\cite{Polydorides2002b}. 
+matrix~\parencite{polydorides_electrode_2002}. 
 
 %The resultant potential distribution in the
 %electrode plane, calculated for the finest mesh and subsequently projected onto
@@ -269,7 +277,7 @@ matrix~\cite{Polydorides2002b}.
 We calculate the sensitivity (or Jacobian) matrix \JB\ of measurements \vB\ to
 changes in the conductivity $\sigma$ of individual elements as
 $\JB_{ij}=\frac{\partial v_j}{\partial \sigma_i}$ using the adjoint
-method~\cite{Polydorides2002b}. Again, since we only have one measurement, \JB\
+method~\parencite{polydorides_electrode_2002}. Again, since we only have one measurement, \JB\
 is in fact a vector.
 We construct a sensitivity image by assigning each element
 $i$ of the FEM the value of \JB$_i$ divided by the element's volume.
@@ -278,13 +286,13 @@ the sensitivity in fifteen planes parallel to the plane of electrodes and
 spanning the height of 5~cm. Results for the finest model are presented in 
 The sensitivity was projected onto a $512\times512$ array and divided into regions
 of interest for the center (C), at the electrode (E) and between the center and electrode
-(M). The resulting sensitivity for the reference mesh calculated with GMSH and the 
+(M). The resulting sensitivity for the reference mesh calculated with Gmsh and the 
 selected regions of interest is presented in Figure~\ref{fig:roiMethods}.
 
 \begin{figure}
   \includegraphics[width=\columnwidth]{roi_methods_figure.pdf}
   \caption{\label{fig:roiMethods} (A) Sensitivity distribution for the reference mesh
-  (C12) generated in GMSH with regions of interest that were used to compare between models. 
+  (C12) generated in Gmsh with regions of interest that were used to compare between models. 
   (B) 3 sensitivity distributions in region $E$ next to the electrodes: (i) Constant mesh M5
   (ii) refined mesh M8 with a balance point of 82\% (iii) reference mesh from (A).
   }
@@ -302,7 +310,7 @@ selected regions of interest is presented in Figure~\ref{fig:roiMethods}.
 %with the C0 mesh as reference to compare the others against.
 
 \subsection{Electrode refinement for arbitrary FEMs}
-Our approach for refinement around electrodes in GMSH with external electrodes 
+Our approach for refinement around electrodes in Gmsh with external electrodes 
 also allows for the refinement of arbitrary models with complex structures
 such as internal electrodes and tissue boundaries.
 A scenario depicting an approximation of 
@@ -316,14 +324,14 @@ very challenging in EIT software.
  
  \begin{figure}
    \subfloat{
-    \includegraphics[width=0.56\columnwidth]{advanced_mesh.pdf}}\hfill
+    \includegraphics[width=0.50\columnwidth]{advanced_mesh.pdf}}\hfill
     \subfloat{
-    \includegraphics[width=0.405\columnwidth]{advanced_mesh_zoom.pdf}}
+    \includegraphics[width=0.705\columnwidth]{advanced_mesh_zoom.pdf}}
   %   \subfloat{
   %   \includegraphics[width=\columnwidth]{simulation_error}}
     \caption{\label{fig:adv_mesh} Example FEMs of a probe entering a bone from the surrounding 
     tissue. Refinement is specified around the electrodes and tissue interfaces near the probe.
-    {\COMMENT{FIX CROP}}}
+    {\COMMENT{FIX CROP (just make it one figure in matlab...)}}}
   \end{figure}
   
 \section{Results}
@@ -337,7 +345,7 @@ very challenging in EIT software.
 The sensitivity compared across all mesh densities 
 
 {\COMMENT{I could have controlled netgen density similarly to try and find the ideal dissipation\dots
-The only thing unique to GMSH is the ability to refine around the internal structures and electrodes
+The only thing unique to Gmsh is the ability to refine around the internal structures and electrodes
 if the method of "balance point" and refinement is going to be this basic\dots}
 
 Basically there is no point to the  original analysis - it just shows that there is refinement in 
