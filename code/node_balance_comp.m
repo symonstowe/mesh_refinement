@@ -446,7 +446,7 @@ function mk_latex_tables(mesh_tab,sens_tab)
 	fid = fopen('../docs/mesh_table.tex','w');    
 	%fprintf(fid,'\\begin{table}[]\n');
 	%fprintf(fid,'\\caption{\\label{tab:mesh-table}Your caption.}\n');
-	fprintf(fid,'\\begin{tabular}{p{1cm}p{0.5cm}p{1cm}p{1cm}|p{1.4cm}p{1.4cm}p{1cm}|p{1.3cm}p{1.3cm}p{1.3cm}p{1.3cm}}\n');
+	fprintf(fid,'\\begin{tabular}{p{0.7cm}p{0.2cm}p{1cm}p{1cm}|p{1.4cm}p{1.4cm}p{1cm}|p{1.3cm}p{1.3cm}p{1.3cm}p{1.3cm}}\n');
 	fprintf(fid,'\\multicolumn{2}{l}{Mesh ID} & ');
 	fprintf(fid,'glbl. maxh [mm] & elec. maxh [mm] & ');
 	fprintf(fid,'\\#~elem. & \\#~nodes & \\#~elec. elem. & ');
