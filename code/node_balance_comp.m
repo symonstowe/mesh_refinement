@@ -4,9 +4,7 @@ function node_balance_comp()
 	[mesh_tab,ref_meshes,m_meshes] = gen_meshes(starting_div);
 	[sens_tab] = calc_all_sens(ref_meshes, m_meshes, starting_div);
 	mk_sens_plots(mesh_tab,sens_tab);
-	%mk_latex_tables(mesh_tab,sens_tab);
-keyboard
-
+	mk_latex_tables(mesh_tab,sens_tab);
 end
 
 function [mesh_tab,ref_meshes,m_meshes] = gen_meshes(constant_div)
@@ -102,7 +100,6 @@ function [mesh_tab,ref_meshes,m_meshes] = gen_meshes(constant_div)
 		% Netgen first 
 		mdl_name = ['mdl_0' num2str(i,'%02.f')];
 		if ismember(mdl_name,w)
-		%if ismember('test',w)
 			load(mdl_fname,mdl_name);
 			fmdl = eval(mdl_name);
 			fmdl.name = mdl_name;
@@ -134,7 +131,6 @@ function [mesh_tab,ref_meshes,m_meshes] = gen_meshes(constant_div)
 		% GMSH
 		mdl_name = ['mdl_1' num2str(i,'%02.f')];
 		if ismember(mdl_name,w)
-		%if ismember('test',w)
 			load(mdl_fname,mdl_name);
 			fmdl = eval(mdl_name);
 			fmdl.name = mdl_name;
@@ -142,7 +138,38 @@ function [mesh_tab,ref_meshes,m_meshes] = gen_meshes(constant_div)
 			num_nodes = 0;
 			node_adjust = 0;
 			while(abs(num_nodes-g_ref_nodes)>g_ref_nodes*0.15)
-				fmdl = gmsh_gen(mesh_mult(i)*base_size,(1-mesh_mult(i)+1)*base_size+(node_adjust*base_size),0,0.25,1);
+				fmdl = gmsh_gen(mesh_mult(i)*base_size,(1-mesh_mult(i)+1)*base_size+(node_adjust*base_size),0,0.25,1,0);
+				num_nodes = size(fmdl.nodes,1);
+				max_size = (1-mesh_mult(i)+1)*base_size+(node_adjust*base_size);
+				min_size = mesh_mult(i)*base_size;
+				if num_nodes>g_ref_nodes 
+					node_adjust = node_adjust+0.05;
+				else
+					node_adjust = node_adjust-0.1;
+				end
+			end
+			fmdl.mesh_params.spec_min = min_size*1000;
+			fmdl.mesh_params.spec_max = max_size*1000;
+			fmdl.name = mdl_name;	
+			fmdl = calc_mesh_info(fmdl);
+			eval([mdl_name ' = fmdl;']);
+			save(mdl_fname,'-append',mdl_name);
+		end
+		% Add to the table
+		mesh_tab_temp = struct2table(eval([mdl_name '.mesh_params']));
+		mesh_tab_temp = [table({eval([mdl_name '.name'])},'VariableNames',{'Name'}), mesh_tab_temp];
+		mesh_tab = [mesh_tab; mesh_tab_temp];
+		% GMSH 2!!! only at the edges!
+		mdl_name = ['mdl_2' num2str(i,'%02.f')];
+		if ismember(mdl_name,w)
+			load(mdl_fname,mdl_name);
+			fmdl = eval(mdl_name);
+			fmdl.name = mdl_name;
+		else
+			num_nodes = 0;
+			node_adjust = 0;
+			while(abs(num_nodes-g_ref_nodes)>g_ref_nodes*0.15)
+				fmdl = gmsh_gen(mesh_mult(i)*base_size,(1-mesh_mult(i)+1)*base_size+(node_adjust*base_size),0,0.25,1,1);
 				num_nodes = size(fmdl.nodes,1);
 				max_size = (1-mesh_mult(i)+1)*base_size+(node_adjust*base_size);
 				min_size = mesh_mult(i)*base_size;
@@ -309,7 +336,6 @@ function [sens_tab] = calc_all_sens(ref_meshes, m_meshes, starting_div)
 			load(ref_sns_fname,[fn{i}, '_sens']);	
 			%sens_img = eval([fn{i}, '_sens']);
 		else
-			keyboard % We should not be hitting this!
 			fmdl =  ref_meshes.(fn{i});
 			eval([fn{i}, '_sens = calc_sens(fmdl);']);
 			save('SENS_ref.mat','-append',[fn{i}, '_sens']);
@@ -328,7 +354,6 @@ function [sens_tab] = calc_all_sens(ref_meshes, m_meshes, starting_div)
 		if ismember(var_name,w)
 			load(sns_fname,var_name);	
 		else
-			keyboard % We should not be hitting this!
 			fmdl =  m_meshes.(fn{i});
 			%sens_img = calc_sens(fmdl);
 			eval([fn{i}, '_sens = calc_sens(fmdl);']);
@@ -406,10 +431,8 @@ function [se,si,me,mi,c,t] = compare_sens(Sa,ref_Sa)
 		ref_sa_roi = ref_Sa .* roi;
 		sa_roi     = Sa .* roi;
 		err = ref_sa_roi - sa_roi;
-		err = sum(abs(err(~isnan(err))))/sum(sum(~isnan(err)));
-		%imagesc(err)
+		err = sum(abs(err(~isnan(err))))/sum(sum(~isnan(err))); % What exactly do you call this?
 		if j == 0
-		%eval('sens_total(ycount,xcount) = err;')
 		t = err;
 		else
 		eval([regions{j},' = err;'])
@@ -419,6 +442,51 @@ end
 
 function mk_latex_tables(mesh_tab,sens_tab)
 	% Generate and format the tables
+	% This is not a smart function... but the table looks nice
+	fid = fopen('../docs/mesh_table.tex','w');    
+	%fprintf(fid,'\\begin{table}[]\n');
+	%fprintf(fid,'\\caption{\\label{tab:mesh-table}Your caption.}\n');
+	fprintf(fid,'\\begin{tabular}{p{1cm}p{0.5cm}p{1cm}p{1cm}|p{1.4cm}p{1.4cm}p{1cm}|p{1.3cm}p{1.3cm}p{1.3cm}p{1.3cm}}\n');
+	fprintf(fid,'\\multicolumn{2}{l}{Mesh ID} & ');
+	fprintf(fid,'glbl. maxh [mm] & elec. maxh [mm] & ');
+	fprintf(fid,'\\#~elem. & \\#~nodes & \\#~elec. elem. & ');
+	fprintf(fid,'minEL\\textsuperscript{\\emph{a}} [mm] & maxEL\\textsuperscript{\\emph{b}} [mm] & ');
+	fprintf(fid,'minEV\\textsuperscript{\\emph{c}} [mm\\textsuperscript{3}] & maxEV\\textsuperscript{\\emph{d}} [mm\\textsuperscript{3}]');
+	fprintf(fid,'%s \\hline \n','\\');
+	% Reference meshes
+	for i=[linspace(1,17,9) 0]
+		m_id = num2str(i,'%02.f');
+		if i==0
+			fprintf(fid,'\\multirow{2}{*}{REF} &');
+		else
+			fprintf(fid,'\\multirow{2}{*}{M-%s} &',m_id);
+		end
+		loc = find(strcmp(['mdl_0' m_id],mesh_tab.Name));
+		fprintf(fid,'A & %0.2f & %0.2f & %d & %d & %d & %0.2f & %0.2f & %0.2f & %0.2f', ...
+			mesh_tab.spec_max(loc),mesh_tab.spec_min(loc),mesh_tab.num_elems(loc), ...
+			mesh_tab.num_nodes(loc),mesh_tab.elems_per_elec(loc), ... 
+			mesh_tab.min_el(loc),mesh_tab.max_el(loc), ... 
+			mesh_tab.min_ev(loc),mesh_tab.max_ev(loc));
+		fprintf(fid,'%s \n','\\');
+		loc = find(strcmp(['mdl_1' m_id],mesh_tab.Name));
+		fprintf(fid,'& ');
+		fprintf(fid,'B & %0.2f & %0.2f & %d & %d & %d & %0.2f & %0.2f & %0.2f & %0.2f', ...
+			mesh_tab.spec_max(loc),mesh_tab.spec_min(loc),mesh_tab.num_elems(loc), ...
+			mesh_tab.num_nodes(loc),mesh_tab.elems_per_elec(loc), ... 
+			mesh_tab.min_el(loc),mesh_tab.max_el(loc), ... 
+			mesh_tab.min_ev(loc),mesh_tab.max_ev(loc));
+		if i==17
+			fprintf(fid,'%s \\hline \n','\\');
+		else
+			fprintf(fid,'%s \n','\\');
+		end
+	end
+	fprintf(fid,'\\multicolumn{11}{c}{\\emph{a}: minimum mesh edge length, \\emph{b}: maximum mesh edge length}');
+	fprintf(fid,'%s \n','\\');
+	fprintf(fid,'\\multicolumn{11}{c}{\\emph{c}: minimum mesh element volume, \\emph{d}: maximum mesh element volume}');
+	fprintf(fid,'%s \n','\\');
+	fprintf(fid,'\\end{tabular}\n');
+	%fprintf(fid,'\\end{table}\n');
 end
 
 function mk_sens_plots(mesh_tab,sens_tab)
@@ -438,18 +506,34 @@ function mk_sens_plots(mesh_tab,sens_tab)
 			net_sens(i) = sens_tab.t(loc);
 			net_CofM(i) = mesh_tab.balance_pt(i);
 		elseif (d>200) % Do the advanced advanced gmsh
+			loc = find(strcmp(var_name,sens_names));
+			gmsh_sens_2(i) = sens_tab.t(loc);
+			gmsh_CofM_2(i) = mesh_tab.balance_pt(i);
 		end
 	end
 	net_sens = net_sens(net_sens > 0);
 	net_CofM = net_CofM(net_CofM > 0);
 	gmsh_sens = gmsh_sens(gmsh_sens > 0);
 	gmsh_CofM = gmsh_CofM(gmsh_CofM > 0);
+	gmsh_sens_2 = gmsh_sens_2(gmsh_sens_2 > 0);
+	gmsh_CofM_2 = gmsh_CofM_2(gmsh_CofM_2 > 0);
 	figure(1)
-	p1 = plot(gmsh_CofM,gmsh_sens,'b');
+	p1 = plot(gmsh_CofM,gmsh_sens,'LineWidth',2,'Color',[55 126 184]/255);
 	hold on 
+	p2 = plot(gmsh_CofM_2,gmsh_sens_2,'LineWidth',2,'Color',[77 175 74]/255);
 	% netgen is a mess
 	[sorted_CofM, I] = sort(net_CofM);
 	sorted_sens = net_sens(I);
-	p2 = plot(sorted_CofM,sorted_sens,'r');
+	p3 = plot(sorted_CofM,sorted_sens,'LineWidth',2,'Color',[228 26 28]/255);
 	hold off
+	set(groot,'defaultAxesTickLabelInterpreter','latex');  
+	set(groot,'defaulttextinterpreter','latex');
+	set(groot,'defaultLegendInterpreter','latex');
+	set(get(gca, 'Title'), 'String', 'Total Sensitivity Error');
+	set(get(gca, 'XLabel'), 'String', 'Node balance point');
+	set(get(gca, 'YLabel'), 'String', 'error');
+	set(gcf,'Position',[103 584 1399 644])
+	legend('GMSH electrode face refinement','GMSH electrode edge refinement','Netgen electrode refinement');
+	grid on
+	print('../imgs/m-mesh_sens_error', '-dsvg')
 end
