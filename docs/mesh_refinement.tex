@@ -71,11 +71,11 @@ In this paper we examine the requirement for mesh refinement around
 electrodes in Electrical Impedance Tomography (EIT). In EIT, an analytic solution is
 often not possible and the finite
 element method (FEM) is used. 
-It has been recommended that FEM models be refined around the electrodes where current
+It has been recommended that FEM models be refined around the electrodes, where current
 density and sensitivity are highest, but the level of refinement required is poorly understood.
-We compare refinement strategies across commonly used meshing softwares in EIT and
+We compare refinement strategies across commonly used meshing software in EIT and
 find that, for a fixed number of nodes, error in the sensitivity calculation is minimized 
-when the balance point of the nodes is between 70-85\% of the tank radius. We also present 
+when the balance point of the nodes is between 70 and 85\% of the tank radius. We also present 
 a method of mesh refinement around internal structures and electrodes for EIT.
 \end{abstract}
 
@@ -95,8 +95,8 @@ is calculated, and then a pseudo-inverse of $\bf J$ is used
 to update the image estimate. (Several algorithms use
 one step of the iterative solution~\parencite{lionheart_eit_2004}.)
 EIT image reconstruction is ill-posed, since the physics of
-current propagation imply that sensitivity is largest near
-the electrodes and smallest in the body center.
+current propagation implies that sensitivity is largest near
+the electrodes and smallest in the body centre.
 
 It is therefore clear that a precise  calculation of $\bf J$ is
 required for solution accuracy. Since it is generally not
@@ -104,46 +104,43 @@ possible to use analytic solutions (because of the non-regular
 shapes of biological bodies and the boundary conditions on a
 conductive electrode) the finite element method (FEM) is typically
 used. 
-One key advantage of FEM is that element size can be
+One key advantage of the FEM is that element size can be
 selectively refined in regions to meet solution accuracy. 
-The FEM solution will be more accurate as more elements are
-added so a high mesh density is often desired to achieve an 
-accurate solution. In EIT the sensitivity is not uniform 
+The accuracy of the FEM solution will increase as more elements are
+added, so a high mesh density is often desired to achieve an 
+accurate solution. In EIT the sensitivity is nonuniform 
 across the entire model.
 Thus
 it has generally been recommended in the EIT literature 
-that FEMs be refined near electrodes, since the electric
-field and sensitivity is largest there~\parencite{adler_electrical_2017}. 
+that FEMs be refined near electrodes, where the electric 
+field and sensitivity are largest~\parencite{adler_electrical_2017}. 
 This recommendation gives rise to several questions: 
 1) No thorough analysis has been made to determine how much 
-refinement is required. Given an ``FEM element budget", what should
-balance of nodes be between the center of the model and the electrodes as a
-percentage of the tank diameter?
+refinement is required. Given an ``FEM element budget'', what should
+balance of nodes be between the centre of the model and the electrodes?
 2) How can mesh refinement be controlled more precisely 
-to refine FEM electrodes on arbitrary
-body shapes? 
+to refine  on arbitrary shapes? 
 3) How do different freely available meshing tools that are
 commonly used with EIT compare when used to refine 3D meshes?
 
 Previously with EIT, mesh refinement has primarily been either 
 constant, or based on 
-the complexity of geometric features
-and gradients between different volumes and surfaces~\parencite{grychtol_fem_2013}.  
-Netgen~\parencite{schoberl_netgen_1997} and Gmsh~\parencite{geuzaine_gmsh_2009} have been used alongside 
-EIDORS~\parencite{adler_uses_2006} to generate meshes in both 2D and 3D. 
-Currently refinement around electrodes is most frequently performed by 
+the complexity of geometric surfaces and lines within a model~\parencite{grychtol_fem_2013}.  
+In EIDORS~\parencite{adler_uses_2006} meshes are generated using both 
+Netgen~\parencite{schoberl_netgen_1997} and Gmsh~\parencite{geuzaine_gmsh_2009} 
+for 2D and 3D models. 
+Refinement around electrodes is commonly performed by 
 setting a mesh density for the electrodes and allowing the mesh density to 
 decay towards the maximum mesh size. This does not allow the user to specify 
-the rate of decay or precisely control the mesh size in regions nearest to 
-the  electrodes where sensitivity to change is highest.
+the rate of decay or precisely control the mesh size.   
 
 A FEM that accurately represents the anatomy of the imaged region 
 can greatly increase the quality of the reconstructed image~\parencite{grychtol_impact_2012},
 but increasing the complexity of mesh surfaces presents additional challenges for
-mesh refinement. Using EIDORS,  electrodes can be placed on the surface of complex boundaries in 
-EIDORS~\parencite{grychtol_fem_2013}, but the current functionality does not allow the
-refinement around the electrodes to be controlled, or for users to specify internal 
-refinement and structures.
+mesh refinement.  EIT reconstruction software EIDORS enables users to place electrodes on the surface of complex 
+boundaries~\parencite{grychtol_fem_2013}, but the current functionality does not  
+enable control of the refinement around the electrodes or internal 
+structures.
 Most commercially available FEM packages
 do not conveniently provide such capability either.
 
@@ -182,7 +179,7 @@ in Matlab 2019b
 \subsection{Mesh Generation}
 Meshes of different size were generated with Netgen and Gmsh by manipulating the desired
 maximum edge length (maxh parameter) for the entire domain and the electrodes.
-Two different mesh analyses were performed. For the first
+Two  mesh analyses were performed. For the first
 mesh maximum element lengths were
 chosen such as to divide the electrode side of 5~cm into an integer number of
 segments of equal size. 
@@ -204,7 +201,7 @@ for both Netgen and Gmsh.
 \begin{figure}
    \includegraphics[width=\columnwidth]{sample_meshes.pdf}
    \caption{\label{fig:sample_meshes} Sample meshes generated with Netgen (top row)
-   and Gmsh (bottom row). From left to right there is: (C1) the coarsest constant
+   and Gmsh (bottom row). From left to right: (C1) the coarsest constant
    mesh; (C5) a refined constant mesh; and (R5) a refined mesh with the same
    electrode mesh density as C5 but lower internal mesh density.}
 \end{figure}
@@ -217,19 +214,19 @@ for both Netgen and Gmsh.
   represents the specified mesh subdivisions per electrode edge. The reference mesh is equivalent to C15.}
 \end{figure}
 
-For the second analysis the distribution of nodes within the 
+For the second analysis, the distribution of nodes within the 
 model was changed without altering 
 the total number of nodes to give M1 -- M17. 
 Starting with the constant mesh C3 as M1, the maximum mesh element 
-length on the electrode was decreased by 10\% and the maximum mesh size in the center was
+length on the electrode was decreased by 10\% and the maximum mesh size in the centre was
 increased so that the total number of elements in the mesh was  within 10\% of the 
 original mesh. For mesh M17 the specified electrode refinement was equal to the reference mesh. 
 In Netgen the mesh dissipation rate was not further controlled, and in Gmsh the mesh density 
-decreased evenly from the electrode surface to the center of the model. 
+decreased evenly from the electrode surface to the centre of the model. 
 To compare these meshes a section of the model was selected
-encompassing all points between the center of the model and a selected electrode face.
+encompassing all points between the centre of the model and a selected electrode face.
 The average 
-distance, or balance point, along the x axis of the selected points was expressed 
+distance, or balance point, along the x-axis of the selected points was expressed 
 as a percentage of the tank radius.
 This process is illustrated in Figure~\ref{fig:balanceMethods}.
  
@@ -237,14 +234,14 @@ This process is illustrated in Figure~\ref{fig:balanceMethods}.
   \includegraphics[width=\columnwidth]{balance_methods.pdf}
   \caption{\label{fig:balanceMethods} A sketch of the process to determine the 
   balance point of generated meshes. A) the starting mesh; B) nodes between the
-  electrode surface and the center of the model are identified; C) the 
+  electrode surface and the centre of the model are identified; C) the 
   balance point of the nodes along the x-axis is calculated and indicated 
   by the red plane; D) a histogram showing an example distribution and balance point (red)
   for the selected model.}
 \end{figure}
 
 When generating meshes to compare across several mesh density profiles as the balance of the nodes was shifted 
-towards the electrodes 19 meshes were generated for each software including 2 reference meshes. 
+towards the electrodes, 19 meshes were generated for each software including 2 reference meshes. 
 Table~\ref{tab:mesh-table} shows the parameters of the resulting odd numbered meshes. 
 
 % Table 
@@ -280,7 +277,7 @@ distribution) and \CB\ is a matrix representing the current injection pattern,
 such that \CB$_{ij}$ represents the current injected in electrode $i$ during
 the $j$-th stimulation. Here, we drive current of 1~A between two adjacent
 electrodes in a single stimulation, so $C = [0\,|\,0\,|\,1\,|\,-1]^T$. 
-We pick a node in the center of the FEM as ground, since it is necessary to
+We pick a node in the centre of the FEM as ground, since it is necessary to
 assume the potential on
 one node for \YB\ to be invertible~\parencite{Adler1996a}.
 We use the complete electrode model and assume contact impedance of
@@ -303,9 +300,9 @@ We construct a sensitivity image by assigning each element
 $i$ of the FEM the value of \JB$_i$ divided by the element's volume.
 Mean sensitivity in the plane of electrodes is then calculated by averaging
 the sensitivity in fifteen planes parallel to the plane of electrodes and
-spanning the height of 5~cm. Results for the finest model are presented in 
+spanning the height of 5~cm. 
 The sensitivity was projected onto a $512\times512$ array and divided into regions
-of interest for the center (C), at the electrode (E) and between the center and electrode
+of interest for the centre (C), at the electrode (E) and between the centre and electrode
 (M). The resulting sensitivity for the reference mesh calculated with Gmsh and the 
 selected regions of interest is presented in Figure~\ref{fig:roiMethods}.
 
@@ -343,13 +340,13 @@ very challenging in EIT software.
 
 \section{Results}
 
-Two different analysis were completed. The first comparing sensitivity error between
+Two analyses of mesh refinement were completed. The first comparing sensitivity error between
 meshes with constant refinement and refinement only at the electrodes, and the second 
 comparing meshes with different levels of electrode refinement and the same number of nodes.
 
-When comparing constant meshes to meshes with refinement at the electrodes sensitivity error
+When comparing constant meshes to meshes with refinement at the electrodes, sensitivity error
 was decreased as more nodes were added to the mesh and to the electrodes. The sensitivity
-error was lowest in the constant meshes across both Netgen and Gmsh softwares. Meshes 
+error was lowest in the constant meshes across both Netgen and Gmsh software. Meshes 
 generated using Netgen
 provided a slightly lower sensitivity error relative to the respective reference mesh
 compared to Gmsh, and resulted in meshes with fewer nodes per electrode given the same input
@@ -367,30 +364,30 @@ interesting? (could have some interessctions?)}}
 \end{figure}
 
 
-Example sensitivity profiles for the M-series meshes are shown in figure \ref{fig:roiMethods}
+Example sensitivity profiles for the M-series meshes are shown in Figure~\ref{fig:roiMethods}.
 The resulting sensitivity profile near the electrodes more closely matched the reference case 
 when refinement at the electrodes was higher. 
 
 \begin{figure}
   \includegraphics[width=\columnwidth]{roi_methods_figure.pdf}
   \caption{\label{fig:roiMethods} (A) Sensitivity distribution for the reference mesh
-  (C15) generated in Gmsh with regions of interest that were used to compare between models. 
+  (C15) generated in Gmsh with regions of interest used to compare between models. 
   (B) 3 sensitivity distributions in region $E$ next to the electrodes: (i) Constant mesh M1
   (ii) refined mesh M15 with a balance point of 82\% (iii) reference mesh from (A).
   }
 \end{figure}
 
-The total sensitivity error across all meshes is plotted vs the balance point in
+The total sensitivity error across all meshes is plotted vs. the balance point in
 Figure~\ref{fig:balance_sens}. For meshes generated with Gmsh the minimum error was 
 achieved when the node balance point was approximately 85\% of the model radius corresponding
 to model M15-B, 
 and for Netgen generated meshes the minimum sensitivity was achieved in model M13-A at a balance point
-of approximately 70\%. Gmsh was able to achieve a lower sensitivity error relative to 
-the respective reference mesh. For meshes using Netgen refinement the balance point did not
+of approximately 70\%. Gmsh achieved a lower sensitivity error measured against
+the respective reference mesh. For meshes using Netgen refinement, the balance point did not
 increase evenly as the electrode density was increased and the internal density decreased. 
 To maintain the same number of nodes within the model, Gmsh required a larger internal maxh
-to be specified relative to Netgen. Gmsh generated meshes with more nodes for the same input
-parameters, but in general the resulting mesh sizes were closer to those specified. The
+than Netgen. Gmsh generated meshes with more nodes for the same input
+parameters, but  generally the resulting mesh sizes were closer to those specified. The
 resulting mesh parameters for odd numbered meshes can be seen in Table \ref{tab:mesh-table}.
 Across all meshes the measurement error when computing the voltage measurements was insignificant
 at less than 0.2\%.
@@ -417,15 +414,23 @@ at less than 0.2\%.
 %  These results are presented in Fig.~\ref{fig:results_qual} 
   
 \section{Discussion}
-We consider the requirement of FEM refinement in the neighbourhood of
+
+We consider several questions on the requirement of FEM refinement in the neighbourhood of
 electrodes and the available tools for mesh refinement in EIT. 
+1) Given an ``FEM element budget'', what should
+balance of nodes be between the centre of the model and the electrodes?
+2) How can mesh refinement be controlled more precisely 
+to refine  on arbitrary shapes? 
+3) How do different freely available meshing tools that are
+commonly used with EIT compare when used to refine 3D meshes?
+
 While such refinement is generally agreed to be useful,
 we have identified two problems: a lack of systematic analysis of
 the required refinement level, and a difficulty in implementing and controlling such
 refinement on arbitrary FE models. We present contributions in
 both areas.
 
-First, the benefit of electrode refinement has been analysed by considering
+First, the benefit of electrode refinement has been analyzed by considering
 a sequence of refined FEMs compared to a ``gold standard'', uniformly fine
 FEM solution. The models were refined either globally or in the electrode
 neighbourhood, and the error in the sensitivity matrix $\bf J$ %voltage measurement,  and mesh quality %current distribution and sensitivity
@@ -433,7 +438,7 @@ was compared.
 
 %Results are summarized in Fig.~\ref{fig:errors} which indicates
 %that model errors near the electrodes decrease equally with electrode
-Results are summarized in Fig.~\ref{fig:balance_sens} which indicates
+Results are summarized in Figure ~\ref{fig:balance_sens} which indicates
 that given a budget of nodes refinement towards the electrodes 
 is beneficial in reducing the total sensitivity error. 
 The results also indicate that despite the parameters used as input 
@@ -446,15 +451,15 @@ It was found that model errors near the electrodes decrease equally with electro
 and uniform refinement. \COMMENT{Just noticed this figure was removed, is figure \ref{fig:roiMethods} enough?}
 Model errors deeper in
 the body are improved with electrode refinement, but not as much as by
-uniform refinement (as would be expected). However, since errors deeper
+uniform refinement. However, since errors deeper
 in the body are so much smaller, this may be less of a factor in many scenarios.
 
 Errors away from the refined areas may be higher 
 but with the ability to refine meshes selectively near regions where high sensitivity 
-is required this may allow for reduced measurement error which still allowing for quicker 
+is required this may allow for reduced measurement error while still allowing for quicker 
 meshing times.
-As more electrodes are added and the model complexity is increased we expect that 
-refinement around the electrodes will continue to reduce total sensitivity error, however 
+As more electrodes are added and the model complexity is increased, we expect that 
+refinement around the electrodes will continue to reduce total sensitivity error. However 
 the node balance analysis will not be possible for irregularly shaped models.
 
 These methods have allowed us to build on mesh refinement strategies
@@ -473,7 +478,7 @@ of regions surrounding internal structures and electrodes, and
 
 \section{Conclusion}
 
-In summary, as expected, refinement of electrode meshes near electrodes 
+In summary, as expected, refinement of  meshes near electrodes 
 does improve model accuracy in terms of sensitivity.
 We recommend that, for each EIT imaging case, required model accuracy be
 determined from an analysis of the system, 
