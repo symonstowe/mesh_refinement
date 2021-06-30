@@ -68,15 +68,23 @@ $^2$~\COMMENT{TODO: Fill this in}
 
 \begin{abstract}
 In this paper we examine the requirement for mesh refinement around 
-electrodes in Electrical Impedance Tomography (EIT). In EIT, an analytic solution is
-often not possible and the finite
-element method (FEM) is used. 
-It has been recommended that FEM models be refined around the electrodes, where current
-density and sensitivity are highest, but the level of refinement required is poorly understood.
-We compare refinement strategies across commonly used meshing software in EIT and
-find that, for a fixed number of nodes, error in the sensitivity calculation is minimized 
-when the balance point of the nodes is between 70 and 85\% of the tank radius. We also present 
-a method of mesh refinement around internal structures and electrodes for EIT.
+electrodes in Electrical Impedance Tomography (EIT). 
+While it has been recommended that  models be refined around the electrodes, where current
+density and sensitivity are highest,  the level of refinement required is poorly understood. 
+Using a set number of nodes, we investigate the optimal distribution 
+between the electrodes and 
+the volume of a model. A balance point was defined as the mean distance of all nodes along the axis 
+of a container encompassing all points between the centre of the model to the surface of a selected electrode.
+The balance point is used to measure the difference in distribution between the electrode and the centre of
+the model.
+We compare refinement strategies across commonly used meshing software in EIT and compare the 
+model sensitivity error to an ultra-fine reference mesh. 
+In a tank model, for a fixed number of nodes, error in the sensitivity calculation is minimized 
+when the balance point of the nodes is n  85\% of the tank radius and the node density dissipates evenly 
+from the electrode surface to the centre of the model. Using this method sensitivity error was decreased 
+in all regions with high sensitivity. This node distribution technique  enables the generation  of accurate 
+meshes with fewer nodes that can reduce measurement error and computing time. 
+
 \end{abstract}
 
 \section{Introduction}
