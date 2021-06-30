@@ -489,6 +489,82 @@ function mk_latex_tables(mesh_tab,sens_tab)
 	%fprintf(fid,'\\end{table}\n');
 end
 
+function mk_sens_plots_log(mesh_tab,sens_tab)
+	% For every row in the sens tab find the correspoonding row in the mesh tab
+	% Grab the CofM, and plot the sens error!	
+	sens_names = cellstr(sens_tab.Name);
+	for i=1:size(mesh_tab,1)
+		var_name = mesh_tab.Name{i};
+		d = regexp(var_name,'\d*','Match');
+		d = str2double(d);
+		if (d > 100) & (d < 200)
+			loc = find(strcmp(var_name,sens_names));
+			gmsh_sens(i) = sens_tab.t(loc);
+			gmsh_sens_e(i) = sens_tab.se(loc)+sens_tab.me(loc);
+			gmsh_sens_i(i) = sens_tab.si(loc)+sens_tab.mi(loc);
+			gmsh_sens_c(i) = sens_tab.c(loc);
+			gmsh_CofM(i) = mesh_tab.balance_pt(i);
+		elseif (d>0) & (d<100)
+			loc = find(strcmp(var_name,sens_names));
+			net_sens(i) = sens_tab.t(loc);
+			net_sens_e(i) = sens_tab.se(loc)+sens_tab.me(loc);
+			net_sens_i(i) = sens_tab.si(loc)+sens_tab.mi(loc);
+			net_sens_c(i) = sens_tab.c(loc);
+			net_CofM(i) = mesh_tab.balance_pt(i);
+		%elseif (d>200) % Do the advanced advanced gmsh
+			loc = find(strcmp(var_name,sens_names));
+			gmsh_sens_2(i) = sens_tab.t(loc);
+			gmsh_CofM_2(i) = mesh_tab.balance_pt(i);
+		end
+	end
+	%keyboard
+	net_sens = net_sens(net_sens > 0);
+	net_sens_c = net_sens_c(net_sens_c > 0);
+	net_sens_i = net_sens_i(net_sens_i > 0);
+	net_sens_e = net_sens_e(net_sens_e > 0);
+	net_CofM = net_CofM(net_CofM > 0);
+	gmsh_sens = gmsh_sens(gmsh_sens > 0);
+	gmsh_sens_e = gmsh_sens_e(gmsh_sens_e > 0);
+	gmsh_sens_i = gmsh_sens_i(gmsh_sens_i > 0);
+	gmsh_sens_c = gmsh_sens_c(gmsh_sens_c > 0);
+	gmsh_CofM = gmsh_CofM(gmsh_CofM > 0);
+
+	%gmsh_sens_2 = gmsh_sens_2(gmsh_sens_2 > 0);
+	%gmsh_CofM_2 = gmsh_CofM_2(gmsh_CofM_2 > 0);
+	figure(1); clf;
+	% Do the netgen sensitivity error plots (in blue)
+	[sorted_CofM, I] = sort(net_CofM);
+	sorted_sens = net_sens(I);
+	n1 = plot(sorted_CofM,sorted_sens,'LineWidth',3,'Color',[  3  78 123]/255);
+	hold on
+	sorted_sens = net_sens_e(I);
+	n2 = plot(sorted_CofM,sorted_sens,'LineWidth',2,'Color',[ 54 144 192]/255);
+	sorted_sens = net_sens_i(I);
+	n3 = plot(sorted_CofM,sorted_sens,'LineWidth',2,'Color',[116 169 207]/255);
+	sorted_sens = net_sens_c(I);
+	n4 = plot(sorted_CofM,sorted_sens,'LineWidth',2,'Color',[166 189 219]/255);
+
+	g1 = plot(gmsh_CofM,gmsh_sens  ,'LineWidth',3,'Color',[153   0   0]/255);
+	g2 = plot(gmsh_CofM,gmsh_sens_e,'LineWidth',2,'Color',[239 101  72]/255);
+	g3 = plot(gmsh_CofM,gmsh_sens_i,'LineWidth',2,'Color',[252 141  89]/255);
+	g4 = plot(gmsh_CofM,gmsh_sens_c,'LineWidth',2,'Color',[253 187 132]/255);
+	%p2 = plot(gmsh_CofM_2,gmsh_sens_2,'LineWidth',2,'Color',[77 175 74]/255);
+	hold off
+	set(groot,'defaultAxesTickLabelInterpreter','latex');  
+	set(groot,'defaulttextinterpreter','latex');
+	set(groot,'defaultLegendInterpreter','latex');
+	set(gca, 'YScale', 'log')
+	set(get(gca, 'XLabel'), 'String', 'Node balance point');
+	set(get(gca, 'YLabel'), 'String', 'Sensitivity Error');
+	legend('Total Netgen', 'Region E Netgen','Region I Netgen', 'Region C Netgen', ...
+               'Total Gmsh'  , 'Region E Gmsh'  ,'Region I Gmsh'  , 'Region C Gmsh'  , ...
+           'Interpreter','latex','NumColumns',2,'FontSize',15,'Location','NorthEast');
+	set(gcf,'Position',[103 584 1399 820])
+	%legend('GMSH electrode refinement','Netgen electrode refinement');
+	set(gca,'YGrid','on');
+	print('../imgs/m-mesh_sens_error_log', '-dsvg')
+end
+
 function mk_sens_plots(mesh_tab,sens_tab)
 	% For every row in the sens tab find the correspoonding row in the mesh tab
 	% Grab the CofM, and plot the sens error!	
@@ -500,40 +576,99 @@ function mk_sens_plots(mesh_tab,sens_tab)
 		if (d > 100) & (d < 200)
 			loc = find(strcmp(var_name,sens_names));
 			gmsh_sens(i) = sens_tab.t(loc);
+			gmsh_sens_e(i) = sens_tab.se(loc)+sens_tab.me(loc);
+			gmsh_sens_i(i) = sens_tab.si(loc)+sens_tab.mi(loc);
+			gmsh_sens_c(i) = sens_tab.c(loc);
 			gmsh_CofM(i) = mesh_tab.balance_pt(i);
 		elseif (d>0) & (d<100)
 			loc = find(strcmp(var_name,sens_names));
 			net_sens(i) = sens_tab.t(loc);
+			net_sens_e(i) = sens_tab.se(loc)+sens_tab.me(loc);
+			net_sens_i(i) = sens_tab.si(loc)+sens_tab.mi(loc);
+			net_sens_c(i) = sens_tab.c(loc);
 			net_CofM(i) = mesh_tab.balance_pt(i);
-		elseif (d>200) % Do the advanced advanced gmsh
+		%elseif (d>200) % Do the advanced advanced gmsh
 			loc = find(strcmp(var_name,sens_names));
 			gmsh_sens_2(i) = sens_tab.t(loc);
 			gmsh_CofM_2(i) = mesh_tab.balance_pt(i);
 		end
 	end
+	%keyboard
 	net_sens = net_sens(net_sens > 0);
+	net_sens_c = net_sens_c(net_sens_c > 0);
+	net_sens_i = net_sens_i(net_sens_i > 0);
+	net_sens_e = net_sens_e(net_sens_e > 0);
 	net_CofM = net_CofM(net_CofM > 0);
 	gmsh_sens = gmsh_sens(gmsh_sens > 0);
+	gmsh_sens_e = gmsh_sens_e(gmsh_sens_e > 0);
+	gmsh_sens_i = gmsh_sens_i(gmsh_sens_i > 0);
+	gmsh_sens_c = gmsh_sens_c(gmsh_sens_c > 0);
 	gmsh_CofM = gmsh_CofM(gmsh_CofM > 0);
-	gmsh_sens_2 = gmsh_sens_2(gmsh_sens_2 > 0);
-	gmsh_CofM_2 = gmsh_CofM_2(gmsh_CofM_2 > 0);
-	figure(1)
-	p1 = plot(gmsh_CofM,gmsh_sens,'LineWidth',2,'Color',[55 126 184]/255);
-	hold on 
-	p2 = plot(gmsh_CofM_2,gmsh_sens_2,'LineWidth',2,'Color',[77 175 74]/255);
-	% netgen is a mess
-	[sorted_CofM, I] = sort(net_CofM);
-	sorted_sens = net_sens(I);
-	p3 = plot(sorted_CofM,sorted_sens,'LineWidth',2,'Color',[228 26 28]/255);
-	hold off
+
+	%gmsh_sens_2 = gmsh_sens_2(gmsh_sens_2 > 0);
+	%gmsh_CofM_2 = gmsh_CofM_2(gmsh_CofM_2 > 0);
+	figure(1); clf;
+	tiledlayout(4,1, 'Padding', 'none', 'TileSpacing', 'compact'); 
 	set(groot,'defaultAxesTickLabelInterpreter','latex');  
 	set(groot,'defaulttextinterpreter','latex');
 	set(groot,'defaultLegendInterpreter','latex');
-	set(get(gca, 'Title'), 'String', 'Total Sensitivity Error');
-	set(get(gca, 'XLabel'), 'String', 'Node balance point');
-	set(get(gca, 'YLabel'), 'String', 'error');
-	set(gcf,'Position',[103 584 1399 644])
-	legend('GMSH electrode face refinement','GMSH electrode edge refinement','Netgen electrode refinement');
-	grid on
-	print('../imgs/m-mesh_sens_error', '-dsvg')
+	% Do the netgen sensitivity error plots (in blue)
+	[sorted_CofM, I] = sort(net_CofM);
+	sorted_sens = net_sens(I);
+	nexttile
+	n1 = plot(sorted_CofM,sorted_sens,'LineWidth',3,'Color',[  3  78 123]/255);
+	hold on
+	g1 = plot(gmsh_CofM,gmsh_sens  ,'LineWidth',3,'Color',[153   0   0]/255);
+	grid on	
+	set(get(gca, 'XLabel'), 'String', 'Node balance point as a percentage of radial distance');
+	set(get(gca, 'YLabel'), 'String', 'Sensitivity Error');
+	set(gca,'FontSize',15)
+	legend('Total Netgen', 'Total Gmsh', ... 
+           'Interpreter','latex','NumColumns',2,'FontSize',15,'Location','NorthEast');
+	hold off 
+	nexttile
+	sorted_sens = net_sens_e(I);
+	n2 = plot(sorted_CofM,sorted_sens,'LineWidth',2,'Color',[ 54 144 192]/255);
+	hold on
+	g2 = plot(gmsh_CofM,gmsh_sens_e,'LineWidth',2,'Color',[239 101  72]/255);
+	grid on	
+	set(get(gca, 'XLabel'), 'String', 'Node balance point as a percentage of radial distance');
+	set(get(gca, 'YLabel'), 'String', 'Sensitivity Error');
+	set(gca,'FontSize',15)
+	legend('Region E Netgen', 'Region E Gmsh', ... 
+           'Interpreter','latex','NumColumns',2,'FontSize',15,'Location','NorthEast');
+	hold off
+	nexttile
+	sorted_sens = net_sens_i(I);
+	n3 = plot(sorted_CofM,sorted_sens,'LineWidth',2,'Color',[116 169 207]/255);
+	hold on
+	g3 = plot(gmsh_CofM,gmsh_sens_i,'LineWidth',2,'Color',[252 141  89]/255);
+	grid on	
+	set(get(gca, 'XLabel'), 'String', 'Node balance point as a percentage of radial distance');
+	set(get(gca, 'YLabel'), 'String', 'Sensitivity Error');
+	set(gca,'FontSize',15)
+	legend('Region I Netgen', 'Region I Gmsh', ... 
+           'Interpreter','latex','NumColumns',2,'FontSize',15,'Location','NorthEast');
+	hold off
+	nexttile
+	sorted_sens = net_sens_c(I);
+	n4 = plot(sorted_CofM,sorted_sens,'LineWidth',2,'Color',[166 189 219]/255);
+	hold on
+	g4 = plot(gmsh_CofM,gmsh_sens_c,'LineWidth',2,'Color',[253 187 132]/255);
+	grid on	
+	set(get(gca, 'XLabel'), 'String', 'Node balance point as a percentage of radial distance');
+	set(get(gca, 'YLabel'), 'String', 'Sensitivity Error');
+	set(gca,'FontSize',15)
+	legend('Region C Netgen', 'Region C Gmsh', ... 
+           'Interpreter','latex','NumColumns',2,'FontSize',15,'Location','NorthEast');
+	hold off
+	%set(get(gca, 'XLabel'), 'String', 'Node balance point as a percentage of radial distance');
+	%set(get(gca, 'YLabel'), 'String', 'Sensitivity Error');
+	%legend('Total Netgen', 'Region E Netgen','Region I Netgen', 'Region C Netgen', ...
+ %              'Total Gmsh'  , 'Region E Gmsh'  ,'Region I Gmsh'  , 'Region C Gmsh'  , ...
+ %          'Interpreter','latex','NumColumns',2,'FontSize',15,'Location','NorthEast');
+	set(gcf,'Position',[606 11 1158 1311])
+	%legend('GMSH electrode refinement','Netgen electrode refinement');
+	%set(gca,'YGrid','on');
+	print('../imgs/m-mesh_sens_error_regions_split', '-dsvg')
 end
